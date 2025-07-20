@@ -1,0 +1,204 @@
+[
+  {
+    "id": "~Reviewer_One1",
+    "content": {
+      "publications": [
+        {
+          "id": "paper_r1_1",
+          "content": {
+            "title": "Attention Mechanisms in Neural Networks",
+            "abstract": "A comprehensive study of attention mechanisms and their applications in deep learning. We analyze various attention architectures including self-attention, cross-attention, and multi-head attention. Our analysis provides insights into when and why different attention mechanisms work best for specific tasks.",
+            "authors": [
+              "Reviewer One"
+            ],
+            "authorids": [
+              "~Reviewer_One1"
+            ],
+            "venue": "ICLR 2023"
+          }
+        },
+        {
+          "id": "paper_r1_2",
+          "content": {
+            "title": "Language Models and Text Generation",
+            "abstract": "Exploring large language models for text generation tasks. We present novel training techniques and evaluation metrics for generative models. Our work focuses on improving coherence and factual accuracy in generated text through better training objectives and architectural improvements.",
+            "authors": [
+              "Reviewer One",
+              "Collaborator A"
+            ],
+            "authorids": [
+              "~Reviewer_One1",
+              "~Collaborator_A1"
+            ],
+            "venue": "NeurIPS 2022"
+          }
+        },
+        {
+          "id": "paper_r1_3",
+          "content": {
+            "title": "Transformer Architectures for Natural Language Understanding",
+            "abstract": "We investigate different transformer architectures for natural language understanding tasks. Our study compares various positional encoding schemes and attention patterns. Results show that task-specific architectural choices can significantly improve performance on downstream NLP tasks.",
+            "authors": [
+              "Reviewer One",
+              "Co-author B",
+              "Co-author C"
+            ],
+            "authorids": [
+              "~Reviewer_One1",
+              "~Co_author_B1",
+              "~Co_author_C1"
+            ],
+            "venue": "ACL 2022"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "~Reviewer_Two1",
+    "content": {
+      "publications": [
+        {
+          "id": "paper_r2_1",
+          "content": {
+            "title": "Object Detection in Images",
+            "abstract": "Novel approaches to object detection using deep convolutional networks. We introduce a new architecture that improves detection accuracy and speed. Our method combines feature pyramid networks with attention mechanisms to better detect objects at different scales and in cluttered scenes.",
+            "authors": [
+              "Reviewer Two"
+            ],
+            "authorids": [
+              "~Reviewer_Two1"
+            ],
+            "venue": "CVPR 2023"
+          }
+        },
+        {
+          "id": "paper_r2_2",
+          "content": {
+            "title": "Image Segmentation with Deep Learning",
+            "abstract": "Advanced techniques for semantic segmentation using neural networks. Our method achieves superior performance on standard benchmarks including Cityscapes and PASCAL VOC. We propose a novel loss function that better handles class imbalance and boundary detection in segmentation tasks.",
+            "authors": [
+              "Reviewer Two",
+              "Co-author B"
+            ],
+            "authorids": [
+              "~Reviewer_Two1",
+              "~Co_author_B1"
+            ],
+            "venue": "ICCV 2022"
+          }
+        },
+        {
+          "id": "paper_r2_3",
+          "content": {
+            "title": "Convolutional Neural Networks for Medical Image Analysis",
+            "abstract": "Application of CNNs to medical image analysis tasks including disease detection and organ segmentation. We develop specialized architectures that handle the unique challenges of medical imaging such as limited data and high precision requirements.",
+            "authors": [
+              "Reviewer Two",
+              "Medical Expert A",
+              "Medical Expert B"
+            ],
+            "authorids": [
+              "~Reviewer_Two1",
+              "~Medical_Expert_A1",
+              "~Medical_Expert_B1"
+            ],
+            "venue": "MICCAI 2021"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "~Reviewer_Three1",
+    "content": {
+      "publications": [
+        {
+          "id": "paper_r3_1",
+          "content": {
+            "title": "Policy Gradient Methods in Reinforcement Learning",
+            "abstract": "We study policy gradient methods for reinforcement learning and propose improvements to existing algorithms. Our work focuses on reducing variance in gradient estimates and improving sample efficiency. Experiments on robotic control tasks demonstrate the effectiveness of our approach.",
+            "authors": [
+              "Reviewer Three"
+            ],
+            "authorids": [
+              "~Reviewer_Three1"
+            ],
+            "venue": "ICML 2023"
+          }
+        },
+        {
+          "id": "paper_r3_2",
+          "content": {
+            "title": "Deep Reinforcement Learning for Game Playing",
+            "abstract": "Application of deep reinforcement learning to complex game environments. We develop new exploration strategies and network architectures that achieve superhuman performance on various games. Our method combines model-free and model-based approaches for better sample efficiency.",
+            "authors": [
+              "Reviewer Three",
+              "Game AI Expert"
+            ],
+            "authorids": [
+              "~Reviewer_Three1",
+              "~Game_AI_Expert1"
+            ],
+            "venue": "NeurIPS 2022"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "~Reviewer_Four1",
+    "content": {
+      "publications": [
+        {
+          "id": "paper_r4_1",
+          "content": {
+            "title": "Graph Convolutional Networks for Node Classification",
+            "abstract": "We propose improved graph convolutional networks for node classification tasks. Our method handles heterogeneous graphs and incorporates node features more effectively. Experiments on citation networks and social graphs show significant improvements over baseline methods.",
+            "authors": [
+              "Reviewer Four"
+            ],
+            "authorids": [
+              "~Reviewer_Four1"
+            ],
+            "venue": "ICLR 2023"
+          }
+        },
+        {
+          "id": "paper_r4_2",
+          "content": {
+            "title": "Social Network Analysis with Machine Learning",
+            "abstract": "Machine learning approaches for analyzing social networks and predicting user behavior. We develop models that capture both structural and temporal patterns in social interactions. Our work has applications in recommendation systems and influence analysis.",
+            "authors": [
+              "Reviewer Four",
+              "Social Science Expert"
+            ],
+            "authorids": [
+              "~Reviewer_Four1",
+              "~Social_Science_Expert1"
+            ],
+            "venue": "WWW 2022"
+          }
+        },
+        {
+          "id": "paper_r4_3",
+          "content": {
+            "title": "Graph Neural Networks for Molecular Property Prediction",
+            "abstract": "Application of graph neural networks to molecular property prediction tasks. We design specialized architectures that capture chemical bond information and molecular symmetries. Our method achieves state-of-the-art results on quantum chemistry benchmarks.",
+            "authors": [
+              "Reviewer Four",
+              "Chemistry Expert A",
+              "Chemistry Expert B"
+            ],
+            "authorids": [
+              "~Reviewer_Four1",
+              "~Chemistry_Expert_A1",
+              "~Chemistry_Expert_B1"
+            ],
+            "venue": "ICML 2021"
+          }
+        }
+      ]
+    }
+  }
+]

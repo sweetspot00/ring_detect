@@ -1,0 +1,122 @@
+[
+  {
+    "id": "sub_001",
+    "content": {
+      "title": {
+        "value": "Deep Learning for Natural Language Processing"
+      },
+      "abstract": {
+        "value": "This paper presents a novel approach to NLP using deep learning techniques including transformers and attention mechanisms. We demonstrate significant improvements on standard benchmarks including GLUE and SuperGLUE. Our method combines self-attention with novel positional encodings to achieve better understanding of long-range dependencies in text."
+      },
+      "authors": {
+        "value": [
+          "Alice Smith",
+          "Bob Johnson"
+        ]
+      },
+      "authorids": {
+        "value": [
+          "~Alice_Smith1",
+          "~Bob_Johnson1"
+        ]
+      },
+      "keywords": {
+        "value": [
+          "deep learning",
+          "NLP",
+          "transformers"
+        ]
+      }
+    }
+  },
+  {
+    "id": "sub_002",
+    "content": {
+      "title": {
+        "value": "Computer Vision with Convolutional Neural Networks"
+      },
+      "abstract": {
+        "value": "We explore advanced CNN architectures for image classification and object detection tasks. Our method achieves state-of-the-art results on ImageNet and COCO datasets. We introduce a novel attention mechanism for convolutional layers that improves feature extraction and reduces computational overhead."
+      },
+      "authors": {
+        "value": [
+          "Charlie Brown",
+          "Diana Prince"
+        ]
+      },
+      "authorids": {
+        "value": [
+          "~Charlie_Brown1",
+          "~Diana_Prince1"
+        ]
+      },
+      "keywords": {
+        "value": [
+          "computer vision",
+          "CNN",
+          "image classification"
+        ]
+      }
+    }
+  },
+  {
+    "id": "sub_003",
+    "content": {
+      "title": {
+        "value": "Reinforcement Learning for Robotics"
+      },
+      "abstract": {
+        "value": "This work presents a novel reinforcement learning framework for robotic control tasks. We develop a policy gradient method that learns from minimal human demonstrations and achieves superior performance on manipulation tasks. Our approach combines imitation learning with exploration strategies to handle sparse reward environments."
+      },
+      "authors": {
+        "value": [
+          "Eve Wilson",
+          "Frank Miller"
+        ]
+      },
+      "authorids": {
+        "value": [
+          "~Eve_Wilson1",
+          "~Frank_Miller1"
+        ]
+      },
+      "keywords": {
+        "value": [
+          "reinforcement learning",
+          "robotics",
+          "policy gradient"
+        ]
+      }
+    }
+  },
+  {
+    "id": "sub_004",
+    "content": {
+      "title": {
+        "value": "Graph Neural Networks for Social Network Analysis"
+      },
+      "abstract": {
+        "value": "We propose a new graph neural network architecture for analyzing social networks and predicting user behavior. Our model incorporates temporal dynamics and multi-modal user features to achieve better prediction accuracy. Experiments on real-world social media datasets demonstrate the effectiveness of our approach."
+      },
+      "authors": {
+        "value": [
+          "Grace Lee",
+          "Henry Davis"
+        ]
+      },
+      "authorids": {
+        "value": [
+          "~Grace_Lee1",
+          "~Henry_Davis1"
+        ]
+      },
+      "keywords": {
+        "value": [
+          "graph neural networks",
+          "social networks",
+          "behavior prediction"
+        ]
+      }
+    }
+  }
+]
