@@ -267,7 +267,17 @@ class SemanticMatcher:
             outputs = self.model(**inputs)
             embeddings = outputs.last_hidden_state.mean(dim=1)
         
-        return embeddings.cpu().numpy()
+        # Convert to numpy using detach and manual conversion
+        if embeddings.is_cuda:
+            embeddings = embeddings.cpu()
+        
+        # Use detach() and convert to list then numpy to avoid compatibility issues
+        embeddings_detached = embeddings.detach()
+        try:
+            return embeddings_detached.numpy()
+        except RuntimeError:
+            # Fallback: convert via Python list if numpy() fails
+            return np.array(embeddings_detached.tolist())
     
     def calculate_similarity(self, text1: str, text2: str) -> float:
         """Calculate semantic similarity between two texts"""
@@ -278,9 +288,28 @@ class SemanticMatcher:
             similarity = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])[0][0]
             
         elif self.method == 'transformer':
-            emb1 = self._get_transformer_embedding(text1)
-            emb2 = self._get_transformer_embedding(text2)
-            similarity = cosine_similarity(emb1, emb2)[0][0]
+            # Use PyTorch operations for similarity to avoid numpy conversion issues
+            inputs1 = self.tokenizer(text1, return_tensors='pt', truncation=True, 
+                                   padding=True, max_length=512)
+            inputs2 = self.tokenizer(text2, return_tensors='pt', truncation=True, 
+                                   padding=True, max_length=512)
+            
+            if torch.cuda.is_available() and self.device == 'cuda':
+                inputs1 = {k: v.cuda() for k, v in inputs1.items()}
+                inputs2 = {k: v.cuda() for k, v in inputs2.items()}
+            
+            with torch.no_grad():
+                outputs1 = self.model(**inputs1)
+                outputs2 = self.model(**inputs2)
+                
+                emb1 = outputs1.last_hidden_state.mean(dim=1)
+                emb2 = outputs2.last_hidden_state.mean(dim=1)
+                
+                # Calculate cosine similarity using PyTorch
+                cos_sim = torch.nn.functional.cosine_similarity(emb1, emb2, dim=1)
+                
+                # Convert to Python float (avoiding numpy)
+                similarity = cos_sim.item()
         
         return max(0.0, min(1.0, similarity))  # Clamp to [0, 1]
 
@@ -348,6 +377,15 @@ class SubmissionReviewerPipeline:
             
             # Store all scores without top-k filtering
             self.scores[submission_id] = submission_scores
+    
+    def get_recommendations(self, submission_id: str, top_k: int = 5) -> List[TPMSScore]:
+        """Get top reviewer recommendations for a submission"""
+        if submission_id not in self.scores:
+            return []
+        
+        # Sort scores for this submission and return top_k
+        sorted_scores = sorted(self.scores[submission_id], key=lambda x: x.score, reverse=True)
+        return sorted_scores[:top_k]
     
     def export_results(self, output_path: str):
         """Export results summary to JSON file"""
