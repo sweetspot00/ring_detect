@@ -219,9 +219,10 @@ class DataLoader:
 class SemanticMatcher:
     """Handles semantic similarity calculation using various methods"""
     
-    def __init__(self, method='tfidf', device='cpu'):
+    def __init__(self, method='tfidf', device='cpu', model_path=None):
         self.method = method
         self.device = device
+        self.model_path = model_path
         self.vectorizer = None
         self.model = None
         self.tokenizer = None
@@ -239,9 +240,28 @@ class SemanticMatcher:
     def _load_transformer_model(self):
         """Load transformer model for semantic similarity"""
         try:
-            model_name = 'sentence-transformers/all-MiniLM-L6-v2'
-            self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-            self.model = AutoModel.from_pretrained(model_name)
+            # Use local path if provided, otherwise use default model name
+            if self.model_path:
+                model_name_or_path = self.model_path
+                logger.info(f"Loading transformer model from local path: {model_name_or_path}")
+            else:
+                model_name_or_path = 'sentence-transformers/all-MiniLM-L6-v2'
+                logger.info(f"Loading transformer model: {model_name_or_path}")
+            
+            # Try to load from local path first if specified
+            if self.model_path:
+                self.tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, local_files_only=True)
+                self.model = AutoModel.from_pretrained(model_name_or_path, local_files_only=True)
+            else:
+                # Try cache first, then download if needed
+                try:
+                    self.tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, local_files_only=True)
+                    self.model = AutoModel.from_pretrained(model_name_or_path, local_files_only=True)
+                    logger.info("Loaded model from cache")
+                except:
+                    logger.info("Model not in cache, attempting to download...")
+                    self.tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
+                    self.model = AutoModel.from_pretrained(model_name_or_path)
             
             if torch.cuda.is_available() and self.device == 'cuda':
                 self.model = self.model.cuda()
@@ -316,8 +336,8 @@ class SemanticMatcher:
 class TPMSCalculator:
     """Calculates TPMS scores for submission-reviewer pairs based on semantic similarity"""
     
-    def __init__(self, device='cpu', similarity_method='tfidf'):
-        self.semantic_matcher = SemanticMatcher(method=similarity_method, device=device)
+    def __init__(self, device='cpu', similarity_method='tfidf', model_path=None):
+        self.semantic_matcher = SemanticMatcher(method=similarity_method, device=device, model_path=model_path)
     
     def calculate_tpms_score(self, submission: Paper, reviewer_profile: AuthorProfile) -> TPMSScore:
         """Calculate TPMS score as semantic similarity between submission and reviewer's papers"""
@@ -346,10 +366,10 @@ class TPMSCalculator:
 class SubmissionReviewerPipeline:
     """Main pipeline orchestrating the submission-reviewer matching process"""
     
-    def __init__(self, device='cpu', similarity_method='tfidf'):
+    def __init__(self, device='cpu', similarity_method='tfidf', model_path=None):
         self.device = device
         self.data_loader = DataLoader()
-        self.tpms_calculator = TPMSCalculator(device=device, similarity_method=similarity_method)
+        self.tpms_calculator = TPMSCalculator(device=device, similarity_method=similarity_method, model_path=model_path)
         
         self.submissions = {}
         self.author_profiles = {}
@@ -587,6 +607,8 @@ def main():
                        help='Device to use (cpu or cuda)')
     parser.add_argument('--method', choices=['tfidf', 'transformer'], default='tfidf',
                        help='Similarity calculation method')
+    parser.add_argument('--model-path', default=None,
+                       help='Path to local transformer model directory (for offline use)')
     
     args = parser.parse_args()
     
@@ -595,8 +617,17 @@ def main():
         logger.error("Data files not found. Please provide valid file paths.")
         return
     
+    # Check model path if provided
+    if args.model_path and not Path(args.model_path).exists():
+        logger.error(f"Model path not found: {args.model_path}")
+        return
+    
     # Initialize and run pipeline
-    pipeline = SubmissionReviewerPipeline(device=args.device, similarity_method=args.method)
+    pipeline = SubmissionReviewerPipeline(
+        device=args.device, 
+        similarity_method=args.method,
+        model_path=args.model_path
+    )
     
     try:
         results = pipeline.run_pipeline(
