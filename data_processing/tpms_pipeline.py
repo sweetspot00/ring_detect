@@ -307,6 +307,65 @@ class SemanticMatcher:
             # Fallback: convert via Python list if numpy() fails
             return np.array(embeddings_detached.tolist())
     
+    def calculate_similarity_batch(self, text1_list: List[str], text2_list: List[str]) -> List[float]:
+        """Calculate semantic similarity for batches of texts (optimized for GPU)"""
+        if self.method == 'tfidf':
+            # For TF-IDF, process individually
+            similarities = []
+            for text1, text2 in zip(text1_list, text2_list):
+                similarities.append(self.calculate_similarity(text1, text2))
+            return similarities
+            
+        elif self.method == 'transformer':
+            try:
+                # Batch processing for transformers
+                batch_size = min(32, len(text1_list))  # Adjust batch size based on GPU memory
+                similarities = []
+                
+                for i in range(0, len(text1_list), batch_size):
+                    batch_text1 = text1_list[i:i+batch_size]
+                    batch_text2 = text2_list[i:i+batch_size]
+                    
+                    # Tokenize batch
+                    inputs1 = self.tokenizer(batch_text1, return_tensors='pt', truncation=True, 
+                                           padding=True, max_length=512)
+                    inputs2 = self.tokenizer(batch_text2, return_tensors='pt', truncation=True, 
+                                           padding=True, max_length=512)
+                    
+                    if torch.cuda.is_available() and self.device == 'cuda':
+                        inputs1 = {k: v.cuda() for k, v in inputs1.items()}
+                        inputs2 = {k: v.cuda() for k, v in inputs2.items()}
+                    
+                    with torch.no_grad():
+                        outputs1 = self.model(**inputs1)
+                        outputs2 = self.model(**inputs2)
+                        
+                        emb1 = outputs1.last_hidden_state.mean(dim=1)
+                        emb2 = outputs2.last_hidden_state.mean(dim=1)
+                        
+                        # Calculate cosine similarity for batch
+                        cos_sim = torch.nn.functional.cosine_similarity(emb1, emb2, dim=1)
+                        
+                        # Convert to list and clamp
+                        batch_similarities = [max(0.0, min(1.0, sim.item())) for sim in cos_sim]
+                        similarities.extend(batch_similarities)
+                
+                return similarities
+                
+            except Exception as e:
+                logger.warning(f"Batch processing failed: {e}, falling back to individual processing")
+                # Fallback to individual processing
+                similarities = []
+                for text1, text2 in zip(text1_list, text2_list):
+                    similarities.append(self.calculate_similarity(text1, text2))
+                return similarities
+        
+        # Default fallback
+        similarities = []
+        for text1, text2 in zip(text1_list, text2_list):
+            similarities.append(self.calculate_similarity(text1, text2))
+        return similarities
+    
     def calculate_similarity(self, text1: str, text2: str) -> float:
         """Calculate semantic similarity between two texts"""
         if self.method == 'tfidf':
@@ -467,11 +526,19 @@ class SubmissionReviewerPipeline:
                             batch_reviewer_texts.append(reviewer_text)
                             batch_metadata.append((submission_id, reviewer_id))
                 
-                # Calculate similarities in batch
+                # Calculate similarities in batch using the new method
                 if batch_submission_texts:
-                    similarities = self.tpms_calculator.semantic_matcher.calculate_similarity_batch(
-                        batch_submission_texts, batch_reviewer_texts
-                    )
+                    try:
+                        similarities = self.tpms_calculator.semantic_matcher.calculate_similarity_batch(
+                            batch_submission_texts, batch_reviewer_texts
+                        )
+                    except AttributeError:
+                        # Fallback to individual processing if batch method not available
+                        logger.warning("Batch method not available, using individual processing")
+                        similarities = []
+                        for text1, text2 in zip(batch_submission_texts, batch_reviewer_texts):
+                            sim = self.tpms_calculator.semantic_matcher.calculate_similarity(text1, text2)
+                            similarities.append(sim)
                     
                     # Store results
                     for (submission_id, reviewer_id), similarity in zip(batch_metadata, similarities):
@@ -504,7 +571,7 @@ class SubmissionReviewerPipeline:
                 pbar.update(len(submission_chunk))
                 pbar.set_postfix({
                     "Chunk": f"{i//chunk_size + 1}/{(len(submission_ids) + chunk_size - 1)//chunk_size}",
-                    "GPU_Batch": len(batch_submission_texts)
+                    "Batch_Size": len(batch_submission_texts)
                 })
     
     def _calculate_scores_standard(self, submission_texts, reviewer_expertise):
