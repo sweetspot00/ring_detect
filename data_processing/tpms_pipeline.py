@@ -16,6 +16,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 import torch
 import torch.nn as nn
 from transformers import AutoTokenizer, AutoModel
+from tqdm import tqdm
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -82,60 +83,63 @@ class DataLoader:
         else:
             papers_data = [data]
         
-        for paper_data in papers_data:
-            try:
-                # Extract paper information
-                paper_id = paper_data.get('id', '')
-                
-                # Handle different data structures
-                if 'content' in paper_data:
-                    content = paper_data['content']
-                    if isinstance(content, dict):
-                        # ICLR 2025 format
-                        if 'title' in content and isinstance(content['title'], dict):
-                            title = content['title'].get('value', '')
-                            abstract = content.get('abstract', {}).get('value', '')
-                            authors = content.get('authors', {}).get('value', [])
-                            author_ids = content.get('authorids', {}).get('value', [])
-                            keywords = content.get('keywords', {}).get('value', [])
+        # Add progress bar for loading submissions
+        with tqdm(papers_data, desc="Loading submissions", unit="paper") as pbar:
+            for paper_data in pbar:
+                try:
+                    # Extract paper information
+                    paper_id = paper_data.get('id', '')
+                    pbar.set_postfix({"Current": paper_id[:20] + "..." if len(paper_id) > 20 else paper_id})
+                    
+                    # Handle different data structures
+                    if 'content' in paper_data:
+                        content = paper_data['content']
+                        if isinstance(content, dict):
+                            # ICLR 2025 format
+                            if 'title' in content and isinstance(content['title'], dict):
+                                title = content['title'].get('value', '')
+                                abstract = content.get('abstract', {}).get('value', '')
+                                authors = content.get('authors', {}).get('value', [])
+                                author_ids = content.get('authorids', {}).get('value', [])
+                                keywords = content.get('keywords', {}).get('value', [])
+                            else:
+                                # DBLP format
+                                title = content.get('title', '')
+                                abstract = content.get('abstract', '')
+                                authors = content.get('authors', [])
+                                author_ids = content.get('authorids', [])
+                                keywords = content.get('keywords', [])
                         else:
-                            # DBLP format
-                            title = content.get('title', '')
-                            abstract = content.get('abstract', '')
-                            authors = content.get('authors', [])
-                            author_ids = content.get('authorids', [])
-                            keywords = content.get('keywords', [])
+                            # Simple format
+                            title = content
+                            abstract = ''
+                            authors = []
+                            author_ids = []
+                            keywords = []
                     else:
-                        # Simple format
-                        title = content
-                        abstract = ''
-                        authors = []
-                        author_ids = []
-                        keywords = []
-                else:
-                    # Direct format
-                    title = paper_data.get('title', '')
-                    abstract = paper_data.get('abstract', '')
-                    authors = paper_data.get('authors', [])
-                    author_ids = paper_data.get('authorids', [])
-                    keywords = paper_data.get('keywords', [])
-                
-                paper = Paper(
-                    id=paper_id,
-                    title=title,
-                    abstract=abstract,
-                    authors=authors,
-                    author_ids=author_ids,
-                    keywords=keywords
-                )
-                
-                submissions[paper_id] = paper
-                
-            except Exception as e:
-                logger.warning(f"Error processing paper {paper_data.get('id', 'unknown')}: {e}")
-                continue
+                        # Direct format
+                        title = paper_data.get('title', '')
+                        abstract = paper_data.get('abstract', '')
+                        authors = paper_data.get('authors', [])
+                        author_ids = paper_data.get('authorids', [])
+                        keywords = paper_data.get('keywords', [])
+                    
+                    paper = Paper(
+                        id=paper_id,
+                        title=title,
+                        abstract=abstract,
+                        authors=authors,
+                        author_ids=author_ids,
+                        keywords=keywords
+                    )
+                    
+                    submissions[paper_id] = paper
+                    
+                except Exception as e:
+                    logger.warning(f"Error processing paper {paper_data.get('id', 'unknown')}: {e}")
+                    continue
         
-        logger.info(f"Loaded {len(submissions)} submissions")
+        logger.info(f"✅ Loaded {len(submissions)} submissions")
         self.submissions = submissions
         return submissions
     
@@ -154,63 +158,67 @@ class DataLoader:
         else:
             profiles_data = [data]
         
-        for profile_data in profiles_data:
-            try:
-                author_id = profile_data.get('id', '')
-                
-                # Extract publications from the nested structure
-                publications_data = []
-                if 'content' in profile_data and 'publications' in profile_data['content']:
-                    publications_data = profile_data['content']['publications']
-                elif 'publications' in profile_data:
-                    publications_data = profile_data['publications']
-                
-                papers = []
-                for pub_data in publications_data:
-                    try:
-                        # Extract publication information
-                        paper_id = pub_data.get('id', '')
-                        
-                        # Handle nested content structure
-                        if 'content' in pub_data:
-                            content = pub_data['content']
-                        else:
-                            content = pub_data
-                        
-                        title = content.get('title', '')
-                        abstract = content.get('abstract', '')
-                        authors = content.get('authors', [])
-                        author_ids = content.get('authorids', [])
-                        venue = content.get('venue', '')
-                        
-                        # Ensure we have at least title or abstract
-                        if not title and not abstract:
-                            continue
+        # Add progress bar for loading profiles
+        with tqdm(profiles_data, desc="Loading author profiles", unit="profile") as pbar:
+            for profile_data in pbar:
+                try:
+                    author_id = profile_data.get('id', '')
+                    pbar.set_postfix({"Current": author_id[:20] + "..." if len(author_id) > 20 else author_id})
+                    
+                    # Extract publications from the nested structure
+                    publications_data = []
+                    if 'content' in profile_data and 'publications' in profile_data['content']:
+                        publications_data = profile_data['content']['publications']
+                    elif 'publications' in profile_data:
+                        publications_data = profile_data['publications']
+                    
+                    papers = []
+                    for pub_data in publications_data:
+                        try:
+                            # Extract publication information
+                            paper_id = pub_data.get('id', '')
                             
-                        paper = Paper(
-                            id=paper_id,
-                            title=title,
-                            abstract=abstract,
-                            authors=authors,
-                            author_ids=author_ids,
-                            venue=venue
-                        )
-                        papers.append(paper)
-                        
-                    except Exception as e:
-                        logger.warning(f"Error processing publication in profile {author_id}: {e}")
-                        continue
-                
-                if papers:  # Only create profile if we have valid papers
-                    profile = AuthorProfile(id=author_id, papers=papers)
-                    profiles[author_id] = profile
-                    logger.debug(f"Loaded profile {author_id} with {len(papers)} papers")
-                
-            except Exception as e:
-                logger.warning(f"Error processing profile {profile_data.get('id', 'unknown')}: {e}")
-                continue
+                            # Handle nested content structure
+                            if 'content' in pub_data:
+                                content = pub_data['content']
+                            else:
+                                content = pub_data
+                            
+                            title = content.get('title', '')
+                            abstract = content.get('abstract', '')
+                            authors = content.get('authors', [])
+                            author_ids = content.get('authorids', [])
+                            venue = content.get('venue', '')
+                            
+                            # Ensure we have at least title or abstract
+                            if not title and not abstract:
+                                continue
+                                
+                            paper = Paper(
+                                id=paper_id,
+                                title=title,
+                                abstract=abstract,
+                                authors=authors,
+                                author_ids=author_ids,
+                                venue=venue
+                            )
+                            papers.append(paper)
+                            
+                        except Exception as e:
+                            logger.warning(f"Error processing publication in profile {author_id}: {e}")
+                            continue
+                    
+                    if papers:  # Only create profile if we have valid papers
+                        profile = AuthorProfile(id=author_id, papers=papers)
+                        profiles[author_id] = profile
+                        pbar.set_postfix({"Current": author_id[:15] + "...", "Papers": len(papers)})
+                    
+                except Exception as e:
+                    logger.warning(f"Error processing profile {profile_data.get('id', 'unknown')}: {e}")
+                    continue
         
-        logger.info(f"Loaded {len(profiles)} author profiles")
+        total_papers = sum(len(profile.papers) for profile in profiles.values())
+        logger.info(f"✅ Loaded {len(profiles)} author profiles with {total_papers} total papers")
         self.author_profiles = profiles
         return profiles
 
@@ -382,21 +390,186 @@ class SubmissionReviewerPipeline:
         self.author_profiles = self.data_loader.load_author_profiles(profiles_path)
     
     def calculate_scores(self):
-        """Calculate TPMS scores for all submission-reviewer pairs"""
-        logger.info("Calculating TPMS scores...")
+        """Calculate TPMS scores for all submission-reviewer pairs with optimized batch processing"""
+        logger.info("🔄 Starting TPMS score calculation...")
         
         total_calculations = len(self.submissions) * len(self.author_profiles)
-        logger.info(f"Calculating scores for {total_calculations} submission-reviewer pairs")
+        logger.info(f"📊 Total calculations: {total_calculations:,} pairs ({len(self.submissions)} submissions × {len(self.author_profiles)} reviewers)")
         
-        for submission_id, submission in self.submissions.items():
+        # Pre-compute all reviewer expertise texts for batch processing
+        logger.info("📝 Pre-computing reviewer expertise texts...")
+        reviewer_expertise = {}
+        submission_texts = {}
+        
+        # Get all texts for batch processing
+        with tqdm(self.author_profiles.items(), desc="🔍 Preparing reviewer texts", unit="reviewer") as pbar:
+            for reviewer_id, reviewer_profile in pbar:
+                expertise_text = reviewer_profile.get_expertise_text()
+                reviewer_expertise[reviewer_id] = expertise_text
+                pbar.set_postfix({"Current": reviewer_id[:20] + "..." if len(reviewer_id) > 20 else reviewer_id})
+        
+        with tqdm(self.submissions.items(), desc="📄 Preparing submission texts", unit="submission") as pbar:
+            for submission_id, submission in pbar:
+                submission_text = submission.get_text_content()
+                submission_texts[submission_id] = submission_text
+                pbar.set_postfix({"Current": submission_id[:20] + "..." if len(submission_id) > 20 else submission_id})
+        
+        # Batch processing for transformers (much faster on GPU)
+        if self.tpms_calculator.semantic_matcher.method == 'transformer':
+            logger.info("🚀 Using optimized batch processing for transformer method")
+            self._calculate_scores_batch_optimized(submission_texts, reviewer_expertise)
+        else:
+            logger.info("🔄 Using standard processing for TF-IDF method")
+            self._calculate_scores_standard(submission_texts, reviewer_expertise)
+        
+        # Final statistics
+        logger.info(f"✅ Score calculation completed!")
+        
+        # Calculate some statistics
+        all_scores = []
+        for submission_scores in self.scores.values():
+            all_scores.extend([s.score for s in submission_scores])
+        
+        if all_scores:
+            non_zero_scores = [s for s in all_scores if s > 0]
+            logger.info(f"📊 Score statistics:")
+            logger.info(f"   • Total scores: {len(all_scores):,}")
+            logger.info(f"   • Non-zero scores: {len(non_zero_scores):,} ({len(non_zero_scores)/len(all_scores)*100:.1f}%)")
+            if non_zero_scores:
+                logger.info(f"   • Score range: {min(non_zero_scores):.3f} - {max(non_zero_scores):.3f}")
+                logger.info(f"   • Average score: {sum(non_zero_scores)/len(non_zero_scores):.3f}")
+        
+        return self.scores
+    
+    def _calculate_scores_batch_optimized(self, submission_texts, reviewer_expertise):
+        """Optimized batch processing for transformer method"""
+        submission_ids = list(submission_texts.keys())
+        reviewer_ids = list(reviewer_expertise.keys())
+        
+        # Process in chunks to optimize GPU memory usage
+        chunk_size = 100  # Adjust based on GPU memory
+        
+        with tqdm(total=len(submission_ids), desc="🧮 Computing scores (batch mode)", unit="submission") as pbar:
+            for i in range(0, len(submission_ids), chunk_size):
+                submission_chunk = submission_ids[i:i+chunk_size]
+                
+                # Prepare batch data for this chunk
+                batch_submission_texts = []
+                batch_reviewer_texts = []
+                batch_metadata = []
+                
+                for submission_id in submission_chunk:
+                    submission_text = submission_texts[submission_id]
+                    for reviewer_id in reviewer_ids:
+                        reviewer_text = reviewer_expertise[reviewer_id]
+                        if submission_text.strip() and reviewer_text.strip():
+                            batch_submission_texts.append(submission_text)
+                            batch_reviewer_texts.append(reviewer_text)
+                            batch_metadata.append((submission_id, reviewer_id))
+                
+                # Calculate similarities in batch
+                if batch_submission_texts:
+                    similarities = self.tpms_calculator.semantic_matcher.calculate_similarity_batch(
+                        batch_submission_texts, batch_reviewer_texts
+                    )
+                    
+                    # Store results
+                    for (submission_id, reviewer_id), similarity in zip(batch_metadata, similarities):
+                        if submission_id not in self.scores:
+                            self.scores[submission_id] = []
+                        
+                        score = TPMSScore(
+                            submission_id=submission_id,
+                            reviewer_id=reviewer_id,
+                            score=similarity
+                        )
+                        self.scores[submission_id].append(score)
+                
+                # Handle empty texts (zero scores)
+                for submission_id in submission_chunk:
+                    if submission_id not in self.scores:
+                        self.scores[submission_id] = []
+                    
+                    # Ensure all reviewers have scores
+                    existing_reviewers = {score.reviewer_id for score in self.scores[submission_id]}
+                    for reviewer_id in reviewer_ids:
+                        if reviewer_id not in existing_reviewers:
+                            score = TPMSScore(
+                                submission_id=submission_id,
+                                reviewer_id=reviewer_id,
+                                score=0.0
+                            )
+                            self.scores[submission_id].append(score)
+                
+                pbar.update(len(submission_chunk))
+                pbar.set_postfix({
+                    "Chunk": f"{i//chunk_size + 1}/{(len(submission_ids) + chunk_size - 1)//chunk_size}",
+                    "GPU_Batch": len(batch_submission_texts)
+                })
+    
+    def _calculate_scores_standard(self, submission_texts, reviewer_expertise):
+        """Standard processing for TF-IDF method"""
+        total_calculations = len(submission_texts) * len(reviewer_expertise)
+        
+        # Create overall progress bar
+        overall_progress = tqdm(
+            total=total_calculations,
+            desc="🧮 Computing TPMS scores",
+            unit="pairs",
+            bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]"
+        )
+        
+        scores_calculated = 0
+        
+        # Iterate through submissions with progress tracking
+        for submission_id, submission_text in submission_texts.items():
             submission_scores = []
             
-            for reviewer_id, reviewer_profile in self.author_profiles.items():
-                score = self.tpms_calculator.calculate_tpms_score(submission, reviewer_profile)
-                submission_scores.append(score)
+            # Progress bar for current submission
+            submission_desc = f"📄 {submission_id[:30]}..." if len(submission_id) > 30 else f"📄 {submission_id}"
             
-            # Store all scores without top-k filtering
+            for reviewer_id, reviewer_text in reviewer_expertise.items():
+                try:
+                    # Calculate similarity directly
+                    if submission_text.strip() and reviewer_text.strip():
+                        similarity = self.tpms_calculator.semantic_matcher.calculate_similarity(
+                            submission_text, reviewer_text
+                        )
+                    else:
+                        similarity = 0.0
+                    
+                    score = TPMSScore(
+                        submission_id=submission_id,
+                        reviewer_id=reviewer_id,
+                        score=similarity
+                    )
+                    submission_scores.append(score)
+                    scores_calculated += 1
+                    
+                    # Update progress
+                    overall_progress.set_postfix({
+                        "Current": submission_desc,
+                        "Reviewer": reviewer_id[:15] + "..." if len(reviewer_id) > 15 else reviewer_id,
+                        "Score": f"{similarity:.3f}"
+                    })
+                    overall_progress.update(1)
+                    
+                except Exception as e:
+                    logger.warning(f"Failed to calculate score for {submission_id} - {reviewer_id}: {e}")
+                    # Create zero score for failed calculations
+                    zero_score = TPMSScore(
+                        submission_id=submission_id,
+                        reviewer_id=reviewer_id,
+                        score=0.0
+                    )
+                    submission_scores.append(zero_score)
+                    scores_calculated += 1
+                    overall_progress.update(1)
+            
+            # Store all scores
             self.scores[submission_id] = submission_scores
+        
+        overall_progress.close()
     
     def get_recommendations(self, submission_id: str, top_k: int = 5) -> List[TPMSScore]:
         """Get top reviewer recommendations for a submission"""
@@ -428,7 +601,7 @@ class SubmissionReviewerPipeline:
             output_path (str): Path to save the matrix
             format (str): Output format - 'torch', 'numpy', 'h5', or 'pickle'
         """
-        logger.info(f"Exporting TPMS matrix to {output_path} in {format} format")
+        logger.info(f"💾 Exporting TPMS matrix to {output_path} in {format} format")
         
         if not self.scores:
             logger.error("No scores calculated. Run calculate_scores() first.")
@@ -438,22 +611,35 @@ class SubmissionReviewerPipeline:
         submission_ids = list(self.submissions.keys())
         reviewer_ids = list(self.author_profiles.keys())
         
-        # Create matrix
+        logger.info(f"📊 Matrix dimensions: {len(submission_ids)} × {len(reviewer_ids)}")
+        
+        # Create matrix with progress bar
         import numpy as np
         tpms_matrix = np.zeros((len(submission_ids), len(reviewer_ids)), dtype=np.float32)
         
-        # Fill matrix
-        for i, submission_id in enumerate(submission_ids):
-            reviewer_scores = {}
-            if submission_id in self.scores:
-                for score in self.scores[submission_id]:
-                    reviewer_scores[score.reviewer_id] = score.score
-            
-            for j, reviewer_id in enumerate(reviewer_ids):
-                if reviewer_id in reviewer_scores:
-                    tpms_matrix[i, j] = reviewer_scores[reviewer_id]
-                else:
-                    tpms_matrix[i, j] = 0.0
+        # Fill matrix with progress tracking
+        with tqdm(
+            total=len(submission_ids), 
+            desc="🔄 Building matrix", 
+            unit="rows"
+        ) as pbar:
+            for i, submission_id in enumerate(submission_ids):
+                reviewer_scores = {}
+                if submission_id in self.scores:
+                    for score in self.scores[submission_id]:
+                        reviewer_scores[score.reviewer_id] = score.score
+                
+                for j, reviewer_id in enumerate(reviewer_ids):
+                    if reviewer_id in reviewer_scores:
+                        tpms_matrix[i, j] = reviewer_scores[reviewer_id]
+                    else:
+                        tpms_matrix[i, j] = 0.0
+                
+                pbar.set_postfix({
+                    "Submission": submission_id[:20] + "..." if len(submission_id) > 20 else submission_id,
+                    "Non-zero": f"{np.count_nonzero(tpms_matrix[i, :])}/{len(reviewer_ids)}"
+                })
+                pbar.update(1)
         
         # Metadata
         metadata = {
@@ -464,6 +650,8 @@ class SubmissionReviewerPipeline:
             'num_submissions': len(submission_ids),
             'num_reviewers': len(reviewer_ids)
         }
+        
+        logger.info(f"💾 Saving in {format} format...")
         
         if format == 'torch':
             import torch
@@ -481,7 +669,7 @@ class SubmissionReviewerPipeline:
             
             scores_path = output_path.replace('.pt', '_data.pt')
             torch.save(torch_data, scores_path)
-            logger.info(f"Saved PyTorch tensor to {scores_path}")
+            logger.info(f"✅ Saved PyTorch tensor to {scores_path}")
             
         elif format == 'numpy':
             # Save as compressed NumPy array
@@ -493,7 +681,7 @@ class SubmissionReviewerPipeline:
                 reviewer_ids=np.array(reviewer_ids, dtype=object),
                 **metadata
             )
-            logger.info(f"Saved NumPy array to {scores_path}")
+            logger.info(f"✅ Saved NumPy array to {scores_path}")
             
         elif format == 'h5':
             try:
@@ -516,7 +704,7 @@ class SubmissionReviewerPipeline:
                         elif isinstance(value, tuple):
                             f.attrs[key] = list(value)
                 
-                logger.info(f"Saved HDF5 file to {scores_path}")
+                logger.info(f"✅ Saved HDF5 file to {scores_path}")
                 
             except ImportError:
                 logger.error("h5py not installed. Install with: pip install h5py")
@@ -538,14 +726,20 @@ class SubmissionReviewerPipeline:
             with open(scores_path, 'wb') as f:
                 pickle.dump(pickle_data, f, protocol=pickle.HIGHEST_PROTOCOL)
             
-            logger.info(f"Saved pickle file to {scores_path}")
+            logger.info(f"✅ Saved pickle file to {scores_path}")
         
         else:
             raise ValueError(f"Unsupported format: {format}. Use 'torch', 'numpy', 'h5', or 'pickle'")
         
-        logger.info(f"Matrix shape: {tpms_matrix.shape[0]} submissions × {tpms_matrix.shape[1]} reviewers")
-        logger.info(f"Score range: [{tpms_matrix.min():.3f}, {tpms_matrix.max():.3f}]")
-        logger.info(f"Non-zero scores: {np.count_nonzero(tpms_matrix)}/{tpms_matrix.size}")
+        # Final statistics
+        non_zero_count = np.count_nonzero(tpms_matrix)
+        total_elements = tpms_matrix.size
+        
+        logger.info(f"📊 Matrix export summary:")
+        logger.info(f"   • Shape: {tpms_matrix.shape[0]} submissions × {tpms_matrix.shape[1]} reviewers")
+        logger.info(f"   • Score range: [{tpms_matrix.min():.3f}, {tpms_matrix.max():.3f}]")
+        logger.info(f"   • Non-zero elements: {non_zero_count:,}/{total_elements:,} ({non_zero_count/total_elements*100:.1f}%)")
+        logger.info(f"   • File size: {Path(scores_path if 'scores_path' in locals() else output_path).stat().st_size / 1024 / 1024:.1f} MB")
         
         return {
             'path': scores_path if 'scores_path' in locals() else output_path,
